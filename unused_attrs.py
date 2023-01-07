@@ -42,4 +42,4 @@ def print_report():
         for class_name, attrs in __read_count.items():
             for attr, count in attrs.items():
                 if count == 0:
-                    print(f"Warning in class {class_name} variable {attr} is never read")
+                    print(f"warning: in class {class_name} variable {attr} is never read")
