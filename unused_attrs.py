@@ -1,49 +1,43 @@
 import atexit
 
+from sys import settrace
 
-def for_all_attrs(original_class):
-    if hasattr(original_class, "__already_decorated"):
-        return original_class
-    original_class.__already_decorated = True
 
-    orig_init = original_class.__init__
-    orig_getattr = original_class.__getattribute__
-    if "__read_count" not in globals():
-        global __read_count
-        __read_count = dict()
-    if original_class.__name__ not in __read_count:
-        __read_count[original_class.__name__] = dict()
+def my_tracer(frame, event, arg=None):
+    frame.f_trace_lines = False
+    # extracts frame code
+    code = frame.f_code
+    # extracts calling function name
+    func_name = code.co_name
+    if not (event == 'return' and func_name == '__init__'):
+        return my_tracer
+    # print(event)
 
-    # Make copy of original __init__, so we can call it without recursion
+    # extracts the line number
+    line_no = frame.f_lineno
 
-    def __init__(self, *args, **kws):
-        orig_init(self, *args, **kws) # Call the original __init__
-        global __read_count
-        for attr_name in dir(self):
-            if not attr_name.endswith('__') and not callable(getattr(self, attr_name)):
-                __read_count[original_class.__name__][attr_name] = 0
+    global __previous_hooks
+    if "__previous_hooks" not in globals():
+        __previous_hooks = set()
+        atexit.register(print_report)
+    if f"{code}{line_no}" in __previous_hooks:
+        return my_tracer
+    __previous_hooks.add(f"{code}{line_no}")
 
-    def __getattribute__(self, attr_name):
-        global __read_count
-        if attr_name in __read_count[original_class.__name__]:
-            __read_count[original_class.__name__][attr_name] += 1
-        return orig_getattr(self, attr_name)
+    init(**frame.f_locals)
 
-    #original_class.__init__ = __init__ # Set the class' __init__ to the new one
-    original_class.__getattribute__ = __getattribute__
-    return original_class
+    return my_tracer
+
 
 def init(self):
-
     global __read_count
-    print(dir(self))
+    # print(dir(self))
 
     if hasattr(type(self), "__already_decorated"):
         return
-    type(self).__already_decorated = True
 
     orig_getattr = type(self).__getattribute__
-    print(f"self.__getattribute__ {self.__getattribute__}")
+    # print(f"self.__getattribute__ {self.__getattribute__}")
     if "__read_count" not in globals():
         global __read_count
         __read_count = dict()
@@ -60,23 +54,13 @@ def init(self):
 
     for attr_name in dir(self):
         if not attr_name.endswith('__') and not callable(getattr(self, attr_name)):
-            print(f"Added {type(self).__name__} {attr_name}")
+            # print(f"Added {type(self).__name__} {attr_name}")
             __read_count[type(self).__name__][attr_name] = 0
-
-def getattribute(self, attr_name):
-    global __read_count
-    if attr_name in __read_count[type(self).__name__]:
-        __read_count[type(self).__name__][attr_name] += 1
-    #return orig_getattr(self, attr_name)
+    type(self).__already_decorated = True
 
 
-def decorate_all_classes(vars):
-    import inspect
-    if "__read_count" not in globals():
-        atexit.register(print_report)
-    for obj in [obj for obj in vars.values() if inspect.isclass(obj)]:
-            print(obj)
-            obj = for_all_attrs(obj)
+def start_tracking():
+    settrace(my_tracer)
 
 
 def print_report():
@@ -85,3 +69,6 @@ def print_report():
             for attr, count in attrs.items():
                 if count == 0:
                     print(f"warning: in class {class_name} variable {attr} is never read")
+
+
+start_tracking()
