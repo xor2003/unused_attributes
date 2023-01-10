@@ -1,4 +1,5 @@
-from unused_attrs import decorate_all_classes
+from unused_attrs import decorate_all_classes, init, getattribute, print_report
+import atexit
 
 from sys import settrace
 
@@ -11,7 +12,9 @@ def my_tracer(frame, event, arg=None):
     code = frame.f_code
     # extracts calling function name
     func_name = code.co_name
-    if event != 'return' and not (event=='call' and func_name=='__getattribute__'):
+    if not (event=='return' and func_name=='__init__') \
+            and not (event=='call' and func_name=='__getattribute__') \
+            and not (event=='call' and func_name=='__setattribute__'):
         return my_tracer
     print(event)
 
@@ -26,10 +29,16 @@ def my_tracer(frame, event, arg=None):
 
     print(f"A {event} encountered in \
     {func_name}() at line number {line_no} {frame.f_locals}")
-    decorate_all_classes(frame.f_globals)
-    #if frame.f_back:
-    #    print(f" {frame.f_back.f_locals}")
-    #    decorate_all_classes(frame.f_back.f_locals)
+    if event=='return' and func_name=='__init__':
+        #decorate_all_classes(frame.f_globals)
+        init(**frame.f_locals)
+    #elif event=='call' and func_name=='__getattribute__':
+    #    print(f"get {frame.f_locals}")
+    #    getattribute(**frame.f_locals)
+    #elif event=='call' and func_name=='__setattribute__':
+    #    print(f"set {frame.f_locals}")
+    #    pass
+
 
     return my_tracer
 
@@ -37,6 +46,8 @@ def my_tracer(frame, event, arg=None):
 # returns reference to local
 # trace function (my_tracer)
 settrace(my_tracer)
+if "__read_count" not in globals():
+    atexit.register(print_report)
 
 
 class C:
