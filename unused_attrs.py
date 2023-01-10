@@ -2,6 +2,10 @@ import atexit
 
 
 def for_all_attrs(original_class):
+    if hasattr(original_class, "__already_decorated"):
+        return original_class
+    original_class.__already_decorated = True
+
     orig_init = original_class.__init__
     orig_getattr = original_class.__getattribute__
     if "__read_count" not in globals():
@@ -32,9 +36,11 @@ def for_all_attrs(original_class):
 
 def decorate_all_classes(vars):
     import inspect
+    if "__read_count" not in globals():
+        atexit.register(print_report)
     for obj in [obj for obj in vars.values() if inspect.isclass(obj)]:
+            print(obj)
             obj = for_all_attrs(obj)
-    atexit.register(print_report)
 
 
 def print_report():
