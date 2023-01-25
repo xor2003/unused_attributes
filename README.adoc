@@ -1,0 +1,8 @@
+Finds python object attributes which were assigned but never read.
+
+Usage: It is enought to copy unused_attrs.py into you project
+and add import to main file:
+
+----
+from . import unused_attrs
+----
