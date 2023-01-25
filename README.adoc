@@ -6,3 +6,6 @@ and add import to main file:
 ----
 from . import unused_attrs
 ----
+
+At run-time try to use program as much as possible including unit testing.
+At the program exit it will print the usage results for the attributes
