@@ -40,7 +40,7 @@ def init(self):
     # print(f"self.__getattribute__ {self.__getattribute__}")
     if "__read_count" not in globals():
         global __read_count
-        __read_count = dict()
+        __read_count = {}
     class_name = the_class.__name__
     #filepath = os.path.abspath(inspect.getfile(the_class))
     #print(f"In __init__ file: {filepath}")
@@ -48,7 +48,7 @@ def init(self):
 
     if index not in __read_count:
         #print(f"Class {class_name} added")
-        __read_count[index] = dict()
+        __read_count[index] = {}
 
     def __getattribute__(self, attr_name):
         global __read_count
@@ -60,20 +60,18 @@ def init(self):
 
         if index not in __read_count:
             #print(f"Class {class_name} added")
-            __read_count[index] = dict()
+            __read_count[index] = {}
         if attr_name in __read_count[index]:
             __read_count[index][attr_name] += 1
         return orig_getattr(self, attr_name)
 
 
     for attr_name in dir(self):
-        try:
+        with suppress(Exception):
             atr = getattr(self, attr_name)
             if not attr_name.endswith('__') and not callable(atr):
                 # print(f"Added {type(self).__name__} {attr_name}")
                 __read_count[index][attr_name] = 0
-        except Exception:
-            pass
     the_class.__getattribute__ = __getattribute__
     the_class.__already_decorated = True
 
