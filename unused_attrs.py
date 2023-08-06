@@ -53,6 +53,7 @@ def record_class_init_attrbiutes(self):
         return
 
     orig_getattr = the_class.__getattribute__
+    orig_setattr = the_class.__setattr__
     # print(f"self.__getattribute__ {self.__getattribute__}")
     global __reads_count
     if "__reads_count" not in globals():
@@ -66,7 +67,7 @@ def record_class_init_attrbiutes(self):
     if index not in __reads_count:
         __reads_count[index] = {}
 
-    def __getattribute__(self, attr_name):
+    def getattribute(self, attr_name):
         """Record attrbibute was read"""
         global __reads_count
         the_class = type(self)
@@ -80,6 +81,19 @@ def record_class_init_attrbiutes(self):
         return orig_getattr(self, attr_name)
 
 
+    def setattr(self, attr_name, value):
+        """Record attrbibute was written"""
+        global __reads_count
+        the_class = type(self)
+        #class_name = the_class.__name__
+
+        #filepath = os.path.abspath(inspect.getfile(type(self)))
+        index = the_class  # filepath + '.' + class_name
+        if attr_name not in __reads_count[index]:
+            __reads_count[index][attr_name] = 0
+        return orig_setattr(self, attr_name, value)
+
+
     # Initialize counter for each attribute
     for attr_name in dir(self):
         try:
@@ -88,7 +102,8 @@ def record_class_init_attrbiutes(self):
                 __reads_count[index][attr_name] = 0
         except Exception:
             pass
-    the_class.__getattribute__ = __getattribute__
+    the_class.__getattribute__ = getattribute
+    the_class.__setattr__ = setattr
     the_class.__already_decorated = True
 
 

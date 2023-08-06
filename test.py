@@ -11,4 +11,5 @@ class C:
 c = C()
 c.a = 2
 c.b = 3
+c.e = 4
 print(c.a)
