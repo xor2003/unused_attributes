@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='unused_attributes',
-    version='0.1.0',
+    version='0.1.3',
     description='Find class unused attributes',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',

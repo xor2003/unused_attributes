@@ -2,7 +2,7 @@
 
 This utility identifies attributes in Python objects that have been assigned a value but are never accessed or read.
 
-To use this utility your main file, add the following:
+Use this utility with your main file as first argument:
 
     unused_attributes.py <tartget_script.py>
 
