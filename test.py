@@ -1,4 +1,4 @@
-from src import unused_attrs
+from src.unused_attrs import tracer
 
 class C:
     d = 6

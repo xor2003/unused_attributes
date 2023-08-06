@@ -4,13 +4,13 @@ from typing import Optional, Any, Callable
 
 
 # Define the tracer function
-def my_tracer(frame: Any, event: str, arg: Optional[Any] = None) -> Callable:
+def reads_tracer(frame: Any, event: str, arg: Optional[Any] = None) -> Callable:
     """Trace each class's __init__() method to track attributes reads"""
     # Disable tracing lines inside the frame
     frame.f_trace_lines = False
 
     if event != 'return':
-        return my_tracer
+        return reads_tracer
 
     # Extract the frame's code object
     code = frame.f_code
@@ -19,7 +19,7 @@ def my_tracer(frame: Any, event: str, arg: Optional[Any] = None) -> Callable:
     func_name = code.co_name
 
     if func_name != '__init__':
-        return my_tracer
+        return reads_tracer
 
     # Create a global set of previous hooks if it doesn't exist
     global __previous_hooks
@@ -33,7 +33,7 @@ def my_tracer(frame: Any, event: str, arg: Optional[Any] = None) -> Callable:
 
     # Skip if the code+line combination is already in the set
     if f"{code}{line_no}" in __previous_hooks:
-        return my_tracer
+        return reads_tracer
 
     # Add the code+line combination to the set
     __previous_hooks.add(f"{code}{line_no}")
@@ -41,7 +41,7 @@ def my_tracer(frame: Any, event: str, arg: Optional[Any] = None) -> Callable:
     # Call the 'init' function with the local variables
     record_class_init_attrbiutes(frame.f_locals['self'])
 
-    return my_tracer
+    return reads_tracer
 
 
 def record_class_init_attrbiutes(self):
@@ -123,4 +123,4 @@ def print_report():
 
 
 # Set the tracer function
-settrace(my_tracer)
+settrace(reads_tracer)
