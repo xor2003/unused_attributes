@@ -1,4 +1,6 @@
+import argparse
 import atexit, os, inspect
+import importlib
 import sys
 from dataclasses import dataclass
 from typing import Optional, Any, Callable
@@ -28,6 +30,7 @@ def reads_tracer(frame: Any, event: str, arg: Optional[Any] = None) -> Callable:
 
     if "__previous_hooks" not in globals():
         __previous_hooks = set()
+        print("Collection started")
         atexit.register(print_report)
 
     # Extract the line number
@@ -70,9 +73,10 @@ def record_class_init_attrbiutes(self, frame):
         global __reads_count
         the_class = type(self)
 
-        if attr_name not in __reads_count[the_class].attributes:
-            __reads_count[the_class].attributes[attr_name] = 0
-        __reads_count[the_class].attributes[attr_name] += 1
+        if the_class in __reads_count:
+            if attr_name not in __reads_count[the_class].attributes:
+                __reads_count[the_class].attributes[attr_name] = 0
+            __reads_count[the_class].attributes[attr_name] += 1
         return orig_getattr(self, attr_name)
 
 
@@ -80,21 +84,27 @@ def record_class_init_attrbiutes(self, frame):
         """Record attrbibute was written"""
         global __reads_count
         the_class = type(self)
-        if attr_name not in __reads_count[the_class].attributes:
+        if the_class in __reads_count and attr_name not in __reads_count[the_class].attributes:
             __reads_count[the_class].attributes[attr_name] = 0
         return orig_setattr(self, attr_name, value)
 
 
     # Initialize counter for each attribute
-    for attr_name in dir(self):
-        try:
-            if not attr_name.endswith('__') and not callable(getattr(self, attr_name)):
-                __reads_count[the_class][attr_name] = 0
-        except Exception:
-            pass
-    the_class.__getattribute__ = getattribute
-    the_class.__setattr__ = setattr
-    the_class.__already_decorated = True
+    try:
+        for attr_name in dir(self):
+            try:
+                if not attr_name.endswith('__') and not callable(getattr(self, attr_name)):
+                    __reads_count[the_class][attr_name] = 0
+            except Exception:
+                pass
+        the_class.__getattribute__ = getattribute
+        the_class.__setattr__ = setattr
+    except Exception:
+        pass
+    try:
+        the_class.__already_decorated = True
+    except Exception:
+        pass
 
 
 def print_report():
@@ -108,6 +118,25 @@ def print_report():
             if count == 0:
                 print(f"{attrs.class_information}:1: W001: in class {class_name} variable {attr} was never read")
 
+if len(sys.argv) < 2:
+    print("""usage: tracer.py script
+
+Collect unused attributes
+
+positional arguments:
+  script      Script to test
+""")
+    sys.exit(1)
+
+script = sys.argv[1]
+sys.argv = sys.argv[1:]
+
+filename = os.path.abspath(script)
+script_dir = os.path.dirname(filename)
+sys.path.insert(0, script_dir)
+script_name = os.path.splitext(os.path.basename(filename))[0]
 
 # Set the tracer function
 sys.settrace(reads_tracer)
+
+importlib.import_module(script_name)

@@ -1,5 +1,3 @@
-from src.unused_attributes import tracer
-
 class C:
     d = 6
 
