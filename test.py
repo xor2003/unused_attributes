@@ -1,4 +1,4 @@
-import unused_attrs
+from src import unused_attrs
 
 class C:
     d = 6
