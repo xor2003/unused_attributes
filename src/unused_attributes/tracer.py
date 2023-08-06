@@ -1,7 +1,13 @@
 import atexit, os, inspect
-from sys import settrace
+import sys
+from dataclasses import dataclass
 from typing import Optional, Any, Callable
 
+@dataclass
+class ClassAttributes:
+
+    attributes: dict[str, int]
+    class_information: str
 
 # Define the tracer function
 def reads_tracer(frame: Any, event: str, arg: Optional[Any] = None) -> Callable:
@@ -9,17 +15,13 @@ def reads_tracer(frame: Any, event: str, arg: Optional[Any] = None) -> Callable:
     # Disable tracing lines inside the frame
     frame.f_trace_lines = False
 
-    if event != 'return':
+    #if event != 'return' or '__qualname__' not in frame.f_locals:
+    if event != 'return' or 'self' not in frame.f_locals:
         return reads_tracer
+    #print(getattr(getmodule(globals(), frame.f_locals['__module__']), frame.f_locals['__qualname__']))
 
     # Extract the frame's code object
     code = frame.f_code
-
-    # Extract the calling function name
-    func_name = code.co_name
-
-    if func_name != '__init__':
-        return reads_tracer
 
     # Create a global set of previous hooks if it doesn't exist
     global __previous_hooks
@@ -38,13 +40,12 @@ def reads_tracer(frame: Any, event: str, arg: Optional[Any] = None) -> Callable:
     # Add the code+line combination to the set
     __previous_hooks.add(f"{code}{line_no}")
 
-    # Call the 'init' function with the local variables
-    record_class_init_attrbiutes(frame.f_locals['self'])
+    record_class_init_attrbiutes(frame.f_locals['self'], frame)
 
     return reads_tracer
 
 
-def record_class_init_attrbiutes(self):
+def record_class_init_attrbiutes(self, frame):
     """Enumerate class attributes and set hook to reading attributes"""
     # print(dir(self))
 
@@ -54,30 +55,24 @@ def record_class_init_attrbiutes(self):
 
     orig_getattr = the_class.__getattribute__
     orig_setattr = the_class.__setattr__
-    # print(f"self.__getattribute__ {self.__getattribute__}")
     global __reads_count
     if "__reads_count" not in globals():
         global __reads_count
         __reads_count = {}
-    #class_name = the_class.__name__
-    #filepath = os.path.abspath(inspect.getfile(the_class))
-    #print(f"In __init__ file: {filepath}")
-    index = the_class  #filepath + '.' + class_name
 
-    if index not in __reads_count:
-        __reads_count[index] = {}
+    if the_class not in __reads_count:
+        traceback = inspect.getframeinfo(frame=frame)
+        __reads_count[the_class] = ClassAttributes(class_information=f"{traceback.filename}:{traceback.lineno}",
+                                                   attributes={})
 
     def getattribute(self, attr_name):
         """Record attrbibute was read"""
         global __reads_count
         the_class = type(self)
-        #class_name = the_class.__name__
 
-        #filepath = os.path.abspath(inspect.getfile(type(self)))
-        index = the_class  # filepath + '.' + class_name
-        if attr_name not in __reads_count[index]:
-            __reads_count[index][attr_name] = 0
-        __reads_count[index][attr_name] += 1
+        if attr_name not in __reads_count[the_class].attributes:
+            __reads_count[the_class].attributes[attr_name] = 0
+        __reads_count[the_class].attributes[attr_name] += 1
         return orig_getattr(self, attr_name)
 
 
@@ -85,12 +80,8 @@ def record_class_init_attrbiutes(self):
         """Record attrbibute was written"""
         global __reads_count
         the_class = type(self)
-        #class_name = the_class.__name__
-
-        #filepath = os.path.abspath(inspect.getfile(type(self)))
-        index = the_class  # filepath + '.' + class_name
-        if attr_name not in __reads_count[index]:
-            __reads_count[index][attr_name] = 0
+        if attr_name not in __reads_count[the_class].attributes:
+            __reads_count[the_class].attributes[attr_name] = 0
         return orig_setattr(self, attr_name, value)
 
 
@@ -98,8 +89,7 @@ def record_class_init_attrbiutes(self):
     for attr_name in dir(self):
         try:
             if not attr_name.endswith('__') and not callable(getattr(self, attr_name)):
-                # print(f"Added {type(self).__name__} {attr_name}")
-                __reads_count[index][attr_name] = 0
+                __reads_count[the_class][attr_name] = 0
         except Exception:
             pass
     the_class.__getattribute__ = getattribute
@@ -108,19 +98,16 @@ def record_class_init_attrbiutes(self):
 
 
 def print_report():
+    sys.settrace(None)
     if "__reads_count" not in globals():
         print("No data collected")
         return
     for the_class, attrs in __reads_count.items():
-        try:
-            filepath = os.path.abspath(inspect.getfile(the_class))
-        except Exception:
-            filepath = ""
         class_name = the_class.__name__
-        for attr, count in attrs.items():
+        for attr, count in attrs.attributes.items():
             if count == 0:
-                print(f"{filepath}:1:1: W001: in class {class_name} variable {attr} was never read")
+                print(f"{attrs.class_information}:1: W001: in class {class_name} variable {attr} was never read")
 
 
 # Set the tracer function
-settrace(reads_tracer)
+sys.settrace(reads_tracer)

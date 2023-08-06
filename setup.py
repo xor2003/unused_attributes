@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='unused_attributes',
-    version='0.1',
+    version='0.1.0',
     description='Find class unused attributes',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
@@ -21,6 +21,6 @@ setup(
         'Programming Language :: Python :: 3.11',
     ],
     keywords='optimization, ununsed attributes, clean code',
-    packages=['unused_attributes'],
+    packages=['src/unused_attributes'],
     install_requires=[],
 )
