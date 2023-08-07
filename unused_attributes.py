@@ -118,25 +118,29 @@ def print_report():
             if count == 0:
                 print(f"{attrs.class_information}:1: W001: in class {class_name} variable {attr} was never read")
 
-if len(sys.argv) < 2:
-    print("""usage: tracer.py script
+def main():
+    if len(sys.argv) < 2:
+        print("""usage: tracer.py script
+    
+    Collect unused attributes
+    
+    positional arguments:
+      script      Script to test
+    """)
+        sys.exit(1)
 
-Collect unused attributes
+    script = sys.argv[1]
+    sys.argv = sys.argv[1:]
 
-positional arguments:
-  script      Script to test
-""")
-    sys.exit(1)
+    filename = os.path.abspath(script)
+    script_dir = os.path.dirname(filename)
+    sys.path.insert(0, script_dir)
+    script_name = os.path.splitext(os.path.basename(filename))[0]
 
-script = sys.argv[1]
-sys.argv = sys.argv[1:]
+    # Set the tracer function
+    sys.settrace(reads_tracer)
 
-filename = os.path.abspath(script)
-script_dir = os.path.dirname(filename)
-sys.path.insert(0, script_dir)
-script_name = os.path.splitext(os.path.basename(filename))[0]
+    importlib.import_module(script_name)
 
-# Set the tracer function
-sys.settrace(reads_tracer)
-
-importlib.import_module(script_name)
+if __name__ == "__main__":
+    main()
