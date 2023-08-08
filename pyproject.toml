@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "unused_attributes"
-version = "0.1.8"
+version = "0.1.9"
 description = "Find class unused attributes"
 authors = [
     {name = "xor2003", email = "xor2003@gmx.com"},
@@ -23,6 +23,8 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Quality Assurance"
 ]
 
 [project.urls]
