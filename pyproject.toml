@@ -4,37 +4,56 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "unused_attributes"
-version = "0.1.10"
-description = "Find class unused attributes"
+version = "0.3.0"
+description = "Find class attributes that are written but never read (hybrid static + runtime analysis)"
 authors = [
     {name = "xor2003", email = "xor2003@gmx.com"},
 ]
 dependencies = []
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 readme = "README.md"
 license = {text = "GPL"}
-keywords = ["optimization", "ununsed attributes", "unused variables","runtime testing","code quality"]
+keywords = ["optimization", "unused attributes", "unused variables", "runtime testing", "code quality"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Quality Assurance"
 ]
 
+[project.optional-dependencies]
+cython = ["Cython>=3.0"]
+dev = [
+    "pytest>=8",
+    "ruff>=0.16",
+    "mypy>=1.10",
+    "lizard>=1.24",
+]
+
 [project.urls]
 Homepage = "https://github.com/xor2003/unused_attributes"
-[tool.distutils.egg_info]
-tag-build = ""
-tag-date = 0
-
-[tool.setuptools]
-include-package-data = false
 
 [project.scripts]
 unused_attributes = "unused_attributes:main"
+
+[project.entry-points.pytest11]
+unused_attributes = "unused_attributes.pytest_plugin"
+
+[tool.setuptools]
+packages = ["unused_attributes"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+files = ["unused_attributes", "tests"]
+warn_unused_ignores = true
+warn_redundant_casts = true

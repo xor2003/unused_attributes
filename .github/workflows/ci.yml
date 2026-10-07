@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+      - name: Install linters
+        run: pip install "ruff==0.16.10" "mypy==2.4.0" "lizard==1.24.1" "pytest>=8"
+      - name: ruff
+        run: ruff check .
+      - name: mypy
+        run: mypy
+      - name: lizard (cyclomatic complexity)
+        run: lizard unused_attributes/ tests/ test.py -x"*_hot.c"
+      - name: basta (dead code)
+        run: npx --yes basta@0.3.0 .
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+        cython: [false, true]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package
+        run: pip install -e . pytest
+      - name: Build Cython extension
+        if: matrix.cython
+        run: |
+          pip install "Cython>=3.0"
+          python setup.py build_ext --inplace
+      - name: Run tests
+        run: pytest -q
